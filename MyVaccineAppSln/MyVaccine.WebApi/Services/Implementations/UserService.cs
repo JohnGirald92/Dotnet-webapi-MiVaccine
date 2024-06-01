@@ -1,8 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using Azure.Core;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MyVaccine.WebApi.Dtos;
@@ -10,135 +6,139 @@ using MyVaccine.WebApi.Literals;
 using MyVaccine.WebApi.Models;
 using MyVaccine.WebApi.Repositories.Contracts;
 using MyVaccine.WebApi.Services.Contracts;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
-namespace MyVaccine.WebApi.Services.Implementations;
-
-public class UserService : IUserService
+namespace MyVaccine.WebApi.Services.Implementations
 {
-    private readonly UserManager<IdentityUser> _userManager;
-    private readonly IUserRepository _userRepository;
-    public UserService(UserManager<IdentityUser> userManager, IUserRepository userRepository)
+    public class UserService : IUserService
     {
-        _userManager = userManager;
-        _userRepository = userRepository;
-    }
-    public async Task<AuthResponseDto> AddUserAsync(RegisterRequetDto request)
-    {
-        var response = new AuthResponseDto();
-        try
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly IUserRepository _userRepository;
+        public UserService(UserManager<IdentityUser> userManager, IUserRepository userRepository)
         {
-            var result = await _userRepository.AddUser(request);
-
-            if (result != null)
+            _userManager = userManager;
+            _userRepository = userRepository;
+        }
+        public async Task<AuthResponseDto> AddUserAsync(RegisterRequestDto request)
+        {
+            var response = new AuthResponseDto();
+            try
             {
-                response.IsSuccess = result.Succeeded;
-                response.Errors = result?.Errors?.Select(x => x.Description).ToArray() ?? new string[] { };
+                var result = await _userRepository.AddUser(request);
+
+                if (result != null)
+                {
+                    response.IsSuccess = result.Succeeded;
+                    response.Errors = result?.Errors?.Select(x => x.Description).ToArray() ?? new string[] { };
+                }
+
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.Errors = new string[] { ex.Message };
             }
 
-        }
-        catch (Exception ex)
-        {
-            response.IsSuccess = false;
-            response.Errors = new string[] { ex.Message };
+            return response;
         }
 
-        return response;
-    }
-
-    public async Task<AuthResponseDto> Login(LoginRequestDto request)
-    {
-        var response = new AuthResponseDto();
-        try
+        public async Task<AuthResponseDto> Login(LoginRequestDto request)
         {
-            var user = await _userManager.FindByNameAsync(request.Username);
-
-            if (user != null && await _userManager.CheckPasswordAsync(user, request.Password))
+            var response = new AuthResponseDto();
+            try
             {
-                var claims = new[]
+                var user = await _userManager.FindByNameAsync(request.Username);
+
+                if (user != null && await _userManager.CheckPasswordAsync(user, request.Password))
                 {
+                    var claims = new[]
+                    {
                     new Claim(ClaimTypes.Name, user.UserName)
                 };
 
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY)));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY)));
+                    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-                var token = new JwtSecurityToken(
-                    //issuer: _configuration["JwtIssuer"],
-                    //audience: _configuration["JwtAudience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(15),
-                    signingCredentials: creds
-                );
+                    var token = new JwtSecurityToken(
+                        //issuer: _configuration["JwtIssuer"],
+                        //audience: _configuration["JwtAudience"],
+                        claims: claims,
+                        expires: DateTime.Now.AddMinutes(15),
+                        signingCredentials: creds
+                    );
 
-                var tokenresult = new JwtSecurityTokenHandler().WriteToken(token);
-                response.Token = tokenresult;
-                response.Expiration = token.ValidTo;
-                response.IsSuccess = true;
+                    var tokenresult = new JwtSecurityTokenHandler().WriteToken(token);
+                    response.Token = tokenresult;
+                    response.Expiration = token.ValidTo;
+                    response.IsSuccess = true;
+                }
+                else
+                {
+                    response.IsSuccess = false;
+                }
             }
-            else
+            catch (Exception ex)
             {
                 response.IsSuccess = false;
+                response.Errors = new string[] { ex.Message };
             }
+
+            return response;
+
         }
-        catch (Exception ex)
+        public async Task<AuthResponseDto> RefreshToken(string email)
         {
-            response.IsSuccess = false;
-            response.Errors = new string[] { ex.Message };
+            var response = new AuthResponseDto();
+            try
+            {
+                var user = await _userManager.FindByNameAsync(email);
+
+                if (user != null)
+                {
+                    var claims = new[]
+                    {
+                    new Claim(ClaimTypes.Name, user.UserName)
+                };
+
+                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY)));
+                    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                    var token = new JwtSecurityToken(
+                        //issuer: _configuration["JwtIssuer"],
+                        //audience: _configuration["JwtAudience"],
+                        claims: claims,
+                        expires: DateTime.Now.AddMinutes(15),
+                        signingCredentials: creds
+                    );
+
+                    var tokenresult = new JwtSecurityTokenHandler().WriteToken(token);
+                    response.Token = tokenresult;
+                    response.Expiration = token.ValidTo;
+                    response.IsSuccess = true;
+                }
+                else
+                {
+                    response.IsSuccess = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.Errors = new string[] { ex.Message };
+            }
+
+            return response;
+
         }
 
-        return response;
-
-    }
-    public async Task<AuthResponseDto> RefreshToken(string email)
-    {
-        var response = new AuthResponseDto();
-        try
+        public async Task<User> GetUserInfo(string email)
         {
             var user = await _userManager.FindByNameAsync(email);
 
-            if (user != null)
-            {
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.Name, user.UserName)
-                };
-
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY)));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    //issuer: _configuration["JwtIssuer"],
-                    //audience: _configuration["JwtAudience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(15),
-                    signingCredentials: creds
-                );
-
-                var tokenresult = new JwtSecurityTokenHandler().WriteToken(token);
-                response.Token = tokenresult;
-                response.Expiration = token.ValidTo;
-                response.IsSuccess = true;
-            }
-            else
-            {
-                response.IsSuccess = false;
-            }
+            var response = await _userRepository.FindByAsNoTracking(x => x.AspNetUserId == user.Id).FirstOrDefaultAsync();
+            return response;
         }
-        catch (Exception ex)
-        {
-            response.IsSuccess = false;
-            response.Errors = new string[] { ex.Message };
-        }
-
-        return response;
-
-    }
-
-    public async Task<User> GetUserInfo(string email)
-    {
-        var user = await _userManager.FindByNameAsync(email);
-
-        var response = await _userRepository.FindByAsNoTracking(x => x.AspNetUserId == user.Id).FirstOrDefaultAsync();
-        return response;
     }
 }

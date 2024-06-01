@@ -1,49 +1,53 @@
-﻿using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using MyVaccine.WebApi.Literals;
 using MyVaccine.WebApi.Models;
+using System.Text;
 
-namespace MyVaccine.WebApi.Configurations;
-
-public static class AuthConfigurations
+namespace MyVaccine.WebApi.Configurations
 {
-    public static IServiceCollection SetMyVaccineAuthConfiguration(this IServiceCollection services)
+    public static class AuthConfigurations
     {
-        services.AddIdentity<IdentityUser, IdentityRole>(options =>
+        public static IServiceCollection SetMyVaccineAuthConfiguration(this IServiceCollection services) 
         {
-            options.Password.RequireDigit = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequiredLength = 8;
-            options.User.RequireUniqueEmail = false;
-            options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+            services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 8;
+                options.User.RequireUniqueEmail = false;
+                options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
 
-            //options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-            //options.Lockout.MaxFailedAccessAttempts = 5;
-        }
+                //options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                //options.Lockout.MaxFailedAccessAttempts = 5;
+            }
         ).AddEntityFrameworkStores<MyVaccineAppDbContext>()
         .AddDefaultTokenProviders();
 
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
+            services.AddAuthentication(options =>
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                //ValidIssuer = "tu_issuer",
-                //ValidAudience = "tu_audience",
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY))),
-                //ClockSkew = TimeSpan.Zero // Evita un desfase de tiempo (opcional)
-            };
-        });
-        return services;
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    //ValidIssuer = "tu_issuer",
+                    //ValidAudience = "tu_audience",
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable(MyVaccineLiterals.JWT_KEY))),
+                    //ClockSkew = TimeSpan.Zero // Evita un desfase de tiempo (opcional)
+                };
+            });
+            return services;
+        }
+
     }
-}
+
+    }
+
