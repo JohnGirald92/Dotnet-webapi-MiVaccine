@@ -10,7 +10,7 @@ namespace MyVaccine.WebApi.Configurations
         {
             var connectionString = Environment.GetEnvironmentVariable(MyVaccineLiterals.CONNECTION_STRING)
             ;
-            //var connectionString = "Server=localhost,14330;Database=MyVaccineAppDb;User Id=sa;Password=Abc.123456;TrustServerCertificate=True;";
+            //var connectionString = "Server=localhost,14333;Database=MyVaccineAppDb;User Id=SA;Password=Debian1419*;TrustServerCertificate=True;";
             services.AddDbContext<MyVaccineAppDbContext>(options =>
     options.UseSqlServer(connectionString));
 

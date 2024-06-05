@@ -1,5 +1,6 @@
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MyVaccine.WebApi.Configurations;
 using MyVaccine.WebApi.Literals;
 using MyVaccine.WebApi.Models;
@@ -17,6 +18,9 @@ builder.Services.SetDataBaseConfiguration();
 builder.Services.SetMyVaccineAuthConfiguration();
 builder.Services.SetDependencyInjection();
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+//builder.Services.AddDbContext<MyVaccineAppDbContext>(options =>
+    //options.UseSqlServer("Server=localhost,1433;Database=MyVaccineAppDb;User Id=SA;Password=Debian1419*;TrustServerCertificate=True;"));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
